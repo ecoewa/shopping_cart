@@ -420,7 +420,14 @@
 		}
 		
 		$tax = sprintf('%.2f', $subtotal * $this->taxRate);
-		$shipping = ($this->shipFlat) ? $this->shipRate : $subtotal * $this->shipRate;
+		
+		$shipping = 0;
+		if ($this->shipRate > 0) {
+			$shipping = ($this->shipFlat) ? $this->shipRate : $subtotal * $this->shipRate;
+		} elseif (!empty($order['Totals']) && $order['Totals'] > 0) {
+			$shipping = $order['Totals']['shipping'];	
+		}
+		
 		$total = $subtotal + $tax + $shipping;
 		
 		$data = array(
