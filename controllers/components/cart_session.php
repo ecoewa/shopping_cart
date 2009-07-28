@@ -250,7 +250,7 @@
 		}*/
 		
 		if ($quantity <= 0) {
-			$returnValue = $this->removeItem($id, $selection);
+			$returnValue = $this->removeItem($id, $selectionCount);
 		}		
 		if ($quantity) {
 			$selection = $this->Session->read("Order.LineItem.$id.Selection");
@@ -259,9 +259,8 @@
 			$selection[$selectionCount]['quantity'] = $quantity;
 			
 			$returnValue = $this->Session->write("Order.LineItem.$id.Selection", $selection);
+			$this->calcTotal();
 		}
-		
-		$this->calcTotal();
 		return $returnValue;
 	}
 	
@@ -273,9 +272,22 @@
 	 * @access public
 	 */
 	// TODO Updated removeItem to work with selections
-	function removeItem($id) {
-		$returnValue = $this->Session->delete("Order.LineItem.$id");
-		$this->calcTotal();
+	function removeItem($id, $selection) {
+		$returnValue = $this->Session->delete("Order.LineItem.$id.Selection.$selection");
+		
+		$selectionArray = $this->Session->read("Order.LineItem.$id.Selection");
+
+		if (empty($selectionArray)) {
+			$this->Session->delete("Order.LineItem.$id");
+		}
+		
+		$lineItems = $this->Session->read("Order.LineItem");
+
+		if (empty($lineItems)) {
+			$this->resetCart();
+		} else {	
+			$this->calcTotal();
+		}
 		
 		return $returnValue;
 	}
@@ -414,6 +426,7 @@
 			$totals = array(
 				'quantity' => $lineQuantity,
 				'subtotal' => $lineTotal,
+				'numAttribs' => count($selection['attributes']),
 			);
 			
 			$this->Session->write('Order.LineItem.' . $id . '.Totals', $totals);
