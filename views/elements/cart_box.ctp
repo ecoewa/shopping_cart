@@ -2,8 +2,8 @@
 	$cart->init($session);
 	if (!isset($currency)) $currency = 'USD';
 ?>
-<div id="cartMessage" style="margin-top: -19px"></div>
 <div id="cart" class="cart"<?php if(!$cart->hasItems()):?> style="display: none"<?php endif; ?>>
+<div id="cartMessage" style="margin-top: -19px;margin-left:30px;"></div>
 	<?php if ($cart->hasItems()): ?>				
 		<h1><?php echo $html->link('Shopping Cart', array('controller' => 'products', 'action' => 'view_cart')); ?></h1>
 		<strong>Item(s):</strong> <span id="cartQuantity"><?php echo $cart->getValue('quantity'); ?></span>
