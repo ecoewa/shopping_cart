@@ -72,6 +72,9 @@
 	 */
 	var $shipFlat = true;
 	
+	var $userId = null;
+	var $persistentCart = false;
+	
     /**
 	 * Initializes the component, gets a reference to the controller 
 	 * and stores configuration options.
@@ -102,6 +105,14 @@
 		if (isset($options['taxableField'])) {
 			$this->taxableField = $options['taxableField'];
 		}
+		
+		if (Configure::read('ShoppingCart.persistent') === true) {
+			$this->persistentCart = true;
+			
+			if ($this->Session->check('Auth')) {
+				$this->userId = $this->Session->read('Auth.User.id');
+			}
+		}
     }
     //called after Controller::beforeFilter()
     function startup(&$controller) {
@@ -126,12 +137,19 @@
 	 */
 	function resetCart($full = true) {
 		$data = null;
+		$returnValue = null;
 		if ($data = $this->Session->read('Order') && !$full) {
 			unset($data['LineItem'], $data['Billing'], $data['Shipping'], $data['Total']);
-			return $this->Session->write('Order', $data);
+			$returnValue = $this->Session->write('Order', $data);
 		} else {
-			return $this->Session->delete('Order');
+			$returnValue = $this->Session->delete('Order');
 		}
+		
+		if ($this->userId && $this->persistentCart) {
+			$this->deleteDatabaseRecord();
+		}		
+		
+		return $returnValue;
 	}
 	
 	/**
@@ -143,6 +161,8 @@
 	 * @access public
 	 */
 	function addItem($data, $quantity = 1, $attribs = array()) {
+		$this->log('[ShoppingCart] Adding Item: ' . $data . ' ' . $quantity . ' ' . serialize($attribs), LOG_DEBUG);
+		
 		// Handles the 3 possible ways to pass a product: 
 		//		$product = 3, Merges database data with custom data
 		//		$product['Model']['id'] = 3, Merges database data with custom data
@@ -159,7 +179,10 @@
 				if ($this->Session->check('Order.LineItem.' . $data)) {
 						$lineItem = $this->Session->read('Order.LineItem.' . $data);
 				} else {
-					$product = $this->controller->{$this->controller->modelClass}->find('first', array('recursive' => -1, 'conditions'=>array('id'=>$data)));
+					if (empty($this->controller->Product)) {
+						$this->controller->loadModel('Product');
+					}
+					$product = $this->controller->Product->find('first', array('recursive' => -1, 'conditions'=>array('id'=>$data)));
 					if (!$product) {
 						return false;
 					}				
@@ -175,6 +198,8 @@
 		if ($this->Session->check('Order.LineItem')) {
 			$lineItems = $this->Session->read('Order.LineItem');
 		}
+		
+		$this->log('LineItems Before: ' . serialize($lineItems), LOG_DEBUG);
 		
 		// Check to see if the item is already in the cart
 		if(!empty($lineItems[$lineItem['Product']['id']])) {	
@@ -196,6 +221,10 @@
 			$returnValue = $this->_addItemNew($lineItem, $attribs, $quantity, $lineItems);
 		}
 		
+		if ($this->userId && $this->persistentCart) {
+			$this->updateDatabaseRecord();
+		}
+		
 		return $returnValue;
 	}
 	
@@ -210,6 +239,8 @@
 	 * @access protected
 	 */	
 	function _addItemNew($lineItem, $attribs = array(), $quantity, $lineItems) {
+		$this->log('[ShoppingCart] Item was new', LOG_DEBUG);
+		
 		// Apply LineItem specific attributes
 		$selection = array();
 		$selection['name'] = $lineItem['Product'][$this->nameField];
@@ -261,6 +292,11 @@
 			$returnValue = $this->Session->write("Order.LineItem.$id.Selection", $selection);
 			$this->calcTotal();
 		}
+		
+		if ($this->userId && $this->persistentCart) {
+			$this->updateDatabaseRecord();
+		}		
+		
 		return $returnValue;
 	}
 	
@@ -453,5 +489,69 @@
 		return $this->Session->write('Order.Totals', $data);
 	}
 	
+	function updateDatabaseRecord() {
+		$this->controller->loadModel('Cart');
+
+		$cart = $this->controller->Cart->find('first', array(
+			'conditions' => array(
+				'Cart.user_id' => $this->userId,
+			),
+		));
+
+		if (!empty($cart)) {
+			$this->controller->Cart->id = $cart['Cart']['id'];
+			$this->controller->Cart->saveField('data', serialize($this->getOrderDetails()));
+		} else {	
+			$this->controller->Cart->create();
+			$cart['Cart']['data'] = serialize($this->getOrderDetails());
+			$cart['Cart']['user_id'] = $this->userId;	
+			$this->controller->Cart->save($cart);					
+		}
+	}
+	
+	function deleteDatabaseRecord() {
+		$this->controller->loadModel('Cart');
+
+		$cart = $this->controller->Cart->find('first', array(
+			'conditions' => array(
+				'Cart.user_id' => $this->userId,
+			),
+		));
+
+		if (!empty($cart)) {
+			$this->controller->Cart->del($cart['Cart']['id']);
+		}
+	}
+	
+	function mergeData($userId = null) {
+		$reading = "no";
+		if ($this->persistentCart) {
+			$reading = "yes";
+		}
+		
+		$this->log("User ID:" . $userId . ", Persist: $reading", LOG_DEBUG);
+		$this->userId = $userId;
+		
+		if ($userId && $this->persistentCart) {
+			$this->controller->loadModel('Cart');
+	
+			$cart = $this->controller->Cart->find('first', array(
+				'conditions' => array(
+					'Cart.user_id' => $userId,
+				),
+			));
+			
+			$this->log('Merging carts: ' . serialize($cart), LOG_DEBUG);
+			if (!empty($cart)) {
+				$cart = unserialize($cart['Cart']['data']);
+			
+				foreach ($cart['LineItem'] as $productId => $lineItem) {
+					foreach($lineItem['Selection'] as $selection) {
+						$this->addItem($productId, $selection['quantity'], $selection['attributes']);
+					}
+				}
+			}
+		}
+	}
 }
 ?>
