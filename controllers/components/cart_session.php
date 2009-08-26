@@ -550,6 +550,8 @@
 						$this->addItem($productId, $selection['quantity'], $selection['attributes']);
 					}
 				}
+			} else {
+				$this->updateDatabaseRecord();
 			}
 		}
 	}
