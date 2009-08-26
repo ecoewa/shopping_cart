@@ -541,8 +541,8 @@
 				),
 			));
 			
-			$this->log('Merging carts: ' . serialize($cart), LOG_DEBUG);
-			if (!empty($cart)) {
+			if (!empty($cart) && !$this->Session->check('Order.Totals')) {
+				$this->log('[ShoppingCart] Merging carts: ' . serialize($cart), LOG_DEBUG);
 				$cart = unserialize($cart['Cart']['data']);
 			
 				foreach ($cart['LineItem'] as $productId => $lineItem) {
@@ -551,6 +551,7 @@
 					}
 				}
 			} else {
+				$this->log('[ShoppingCart] Updating record in DB. No merge needed.', LOG_DEBUG);
 				$this->updateDatabaseRecord();
 			}
 		}
