@@ -495,6 +495,7 @@
 		$cart = $this->controller->Cart->find('first', array(
 			'conditions' => array(
 				'Cart.user_id' => $this->userId,
+				'Cart.state' => 'active',
 			),
 		));
 
@@ -507,15 +508,23 @@
 			$cart['Cart']['user_id'] = $this->userId;	
 			$this->controller->Cart->save($cart);					
 		}
+		
+		$this->Session->write('cartId', $this->controller->Cart->id);
 	}
 	
-	function deleteDatabaseRecord() {
+	function deleteDatabaseRecord($id = null) {
 		$this->controller->loadModel('Cart');
 
+		$conditions = array();
+		if ($id) {
+			$conditions['Cart.id'] = $id;
+		} else {
+			$conditions['Cart.user_id'] = $this->userId;
+			$conditions['Cart.state'] = 'active';
+		}
+		
 		$cart = $this->controller->Cart->find('first', array(
-			'conditions' => array(
-				'Cart.user_id' => $this->userId,
-			),
+			'conditions' => $conditions,
 		));
 
 		if (!empty($cart)) {
@@ -538,6 +547,7 @@
 			$cart = $this->controller->Cart->find('first', array(
 				'conditions' => array(
 					'Cart.user_id' => $userId,
+					'Cart.state' => 'active',
 				),
 			));
 			
