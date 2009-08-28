@@ -468,7 +468,7 @@
 			$this->Session->write('Order.LineItem.' . $id . '.Totals', $totals);
 		}
 		
-		$tax = sprintf('%.2f', $subtotal * $this->taxRate);
+		$tax = round($subtotal * $this->taxRate, 2);
 		
 		$shipping = 0;
 		if ($this->shipRate > 0) {
