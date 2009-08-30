@@ -2,7 +2,7 @@
 	$cart->init($session);
 	if (!isset($currency)) $currency = 'USD';
 ?>
-<div id="cartMessage"></div>
+<div id="cartMessage">&nbsp;</div>
 <div id="cart" class="cart"<?php if(!$cart->hasItems()):?> style="display: none"<?php endif; ?>>
 	<?php if ($cart->hasItems()): ?>				
 		<h1><?php echo $html->link('Shopping Cart', array('controller' => 'products', 'action' => 'view_cart')); ?></h1>

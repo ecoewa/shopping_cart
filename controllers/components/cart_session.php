@@ -4,7 +4,10 @@
  * Cart Session Component
  * Part of the ShoppingCart plugin
  *
- * @author 	Dean Sofer (ProLoser), Jesse Adams (techno-geek)
+ * @author Dean Sofer (ProLoser)
+ * @author Jesse Adams (techno-geek)
+ * @author Rick Guyer (ricog)
+ * 
  * @version	0.2
  * @package	CakePHP Shopping Cart Plugin Suite
  * @license http://www.opensource.org/licenses/mit-license.php The MIT License
@@ -160,7 +163,7 @@
 	 * @return <success> boolean
 	 * @access public
 	 */
-	function addItem($data, $quantity = 1, $attribs = array()) {
+	function addItem($data, $quantity = 1, $attribs = array(), $version = null) {
 		$this->log('[ShoppingCart] Adding Item: ' . $data . ' ' . $quantity . ' ' . serialize($attribs), LOG_DEBUG);
 		
 		// Handles the 3 possible ways to pass a product: 
@@ -191,6 +194,10 @@
 			}
 		} else {
 			$lineItem['Product'] = $product = $data;
+		}
+		
+		if ($version) {
+			$lineItem['Product']['version'] = $version;
 		}
 		
 		// Get the list of line items in the cart
