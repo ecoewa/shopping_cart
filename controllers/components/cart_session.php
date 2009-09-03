@@ -155,6 +155,11 @@
 		return $returnValue;
 	}
 	
+	function resetShipping() {
+		$this->Session->write('Order.Totals.shipping', 0);
+		$this->Session->del('Order.Shipping');
+	}
+	
 	/**
 	 * Add's an item to the cart, requires a Product.id number or data
 	 *
@@ -228,6 +233,9 @@
 			$returnValue = $this->_addItemNew($lineItem, $attribs, $quantity, $lineItems);
 		}
 		
+		// Reset shipping data
+		$this->resetShipping();
+		
 		if ($this->userId && $this->persistentCart) {
 			$this->updateDatabaseRecord();
 		}
@@ -300,6 +308,9 @@
 			$this->calcTotal();
 		}
 		
+		// Reset shipping data
+		$this->resetShipping();		
+		
 		if ($this->userId && $this->persistentCart) {
 			$this->updateDatabaseRecord();
 		}		
@@ -331,6 +342,9 @@
 		} else {	
 			$this->calcTotal();
 		}
+		
+		// Reset shipping data
+		$this->resetShipping();		
 		
 		return $returnValue;
 	}
