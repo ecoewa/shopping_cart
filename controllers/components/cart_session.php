@@ -349,6 +349,31 @@
 			return false;
 		}
 	}
+
+	/**
+	 * Returns the total weight of the order
+	 *
+	 * @param 
+	 * @return array()	Returns the currently stored shopping cart session with calculations
+	 * @access public
+	 */
+	function getOrderMeasurements() {
+		if ($this->Session->check('Order')) {
+			$order = $this->Session->read('Order');
+			$weight = 0;
+			if (count($order['LineItem'])) {
+				foreach ($order['LineItem'] as $item) {
+					foreach ($item['Selection'] as $selection) {
+						$weight = $weight + ($selection['quantity'] * $item['Product']['weight']);
+					}
+				}
+			}
+			
+			return array('totals' => array('weight' => $weight));
+		} else {
+			return array();
+		}
+	}
 	
 	/*
 	 * The setPaymentInfo function is a wrapper function to simply fill in both
