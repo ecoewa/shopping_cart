@@ -562,9 +562,11 @@
 				$this->log('[ShoppingCart] Merging carts: ' . serialize($cart), LOG_DEBUG);
 				$cart = unserialize($cart['Cart']['data']);
 			
-				foreach ($cart['LineItem'] as $productId => $lineItem) {
-					foreach($lineItem['Selection'] as $selection) {
-						$this->addItem($productId, $selection['quantity'], $selection['attributes']);
+				if(count($cart['LineItem']) > 0) {
+					foreach ($cart['LineItem'] as $productId => $lineItem) {
+						foreach($lineItem['Selection'] as $selection) {
+							$this->addItem($productId, $selection['quantity'], $selection['attributes']);
+						}
 					}
 				}
 			} else {
