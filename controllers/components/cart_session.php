@@ -156,8 +156,10 @@
 	}
 	
 	function resetShipping() {
-		$this->Session->write('Order.Totals.shipping', 0);
-		$this->Session->del('Order.Shipping');
+		if($this->Session->check('Order')) {
+			$this->Session->write('Order.Totals.shipping', 0);
+			$this->Session->del('Order.Shipping');
+		}
 	}
 	
 	/**
@@ -297,8 +299,7 @@
 		
 		if ($quantity <= 0) {
 			$returnValue = $this->removeItem($id, $selectionCount);
-		}		
-		if ($quantity) {
+		} else if ($quantity) {
 			$selection = $this->Session->read("Order.LineItem.$id.Selection");
 			
 			$selection[$selectionCount]['subtotal'] = $quantity * $selection[$selectionCount]['price']; 
@@ -306,10 +307,10 @@
 			
 			$returnValue = $this->Session->write("Order.LineItem.$id.Selection", $selection);
 			$this->calcTotal();
-		}
-		
-		// Reset shipping data
-		$this->resetShipping();		
+			
+			// Reset shipping data
+			$this->resetShipping();				
+		}	
 		
 		if ($this->userId && $this->persistentCart) {
 			$this->updateDatabaseRecord();
