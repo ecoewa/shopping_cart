@@ -170,7 +170,7 @@
 	 * @return <success> boolean
 	 * @access public
 	 */
-	function addItem($data, $quantity = 1, $attribs = array(), $version = null) {
+	function addItem($data, $quantity = 1, $attribs = array(), $version = null, $shipping = null) {
 		$this->log('[ShoppingCart] Adding Item: ' . $data . ' ' . $quantity . ' ' . serialize($attribs), LOG_DEBUG);
 		
 		// Handles the 3 possible ways to pass a product: 
@@ -205,6 +205,10 @@
 		
 		if ($version) {
 			$lineItem['Product']['version'] = $version;
+		}
+		
+		if ($shipping) {
+			$lineItem['Product']['shipping'] = $shipping;
 		}
 		
 		// Get the list of line items in the cart
