@@ -162,6 +162,43 @@
 		}
 	}
 	
+	function applyCoupon($code) {
+		$this->controller->loadModel('Coupon');
+		$coupon = $this->controller->Coupon->find('first', array(
+			'conditions' => array(
+				'Coupon.code' => $code,
+			),	
+		));
+		
+		$coupons = array();
+		if ($this->Session->check('Order.Coupon')) {
+			$coupons = $this->Session->read('Order.Coupon');
+		}		
+		
+		$alreadyExists = false;
+		foreach ($coupons as $existingCoupon) {
+			if ($existingCoupon['Coupon']['id'] == $coupon['Coupon']['id']) {
+				$alreadyExists = true;
+			}
+		}
+		
+		$result = false;
+		if (!$alreadyExists) {
+			$coupons[] = $coupon;
+			$this->Session->write('Order.Coupon', $coupons);
+			
+			$this->calcTotal();
+			
+			if ($this->userId && $this->persistentCart) {
+				$this->updateDatabaseRecord();
+			}		
+			
+			$result = true;
+		}
+		
+		return $result;
+	}
+	
 	/**
 	 * Add's an item to the cart, requires a Product.id number or data
 	 *
@@ -517,6 +554,37 @@
 			);
 			
 			$this->Session->write('Order.LineItem.' . $id . '.Totals', $totals);
+		}
+		
+		if (!empty($order['Coupon'])) {
+			foreach ($order['Coupon'] as $count => $coupon) {
+				$discount = 0;
+				if ($coupon['Coupon']['deduction_type'] == 'amount') {
+					$discount = $coupon['Coupon']['discount'];
+				} else {
+					if (count($coupon['Restriction']) > 0) {
+						$restrictions = array();
+						foreach ($coupon['Restriction'] as $restriction) {
+							$restrictions[] = $restriction['id'];
+						}
+						
+						foreach ($order['LineItem'] as $id => $lineItem) {
+							if (in_array($lineItem['Product']['id'], $restrictions)) {
+								$discount += $this->Session->read('Order.LineItem.' . $id . '.Totals.subtotal') * ($coupon['Coupon']['discount'] / 100);
+							}	
+						}					
+					} else {
+						$discount = $subtotal * ($coupon['Coupon']['discount'] / 100);
+					}
+				}
+				
+				$totals = array(
+					'discount' => $discount,
+				);
+				
+				$this->Session->write('Order.Coupon.' . $count . '.Totals', $totals);
+				$subtotal -= $discount;
+			}
 		}
 		
 		$tax = round($subtotal * $this->taxRate, 2);
