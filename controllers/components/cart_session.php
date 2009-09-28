@@ -350,8 +350,11 @@
 			$this->calcTotal();
 			
 			// Reset shipping data
-			$this->resetShipping();				
+			$this->resetShipping();	
 		}	
+		
+		// Clear Coupons
+		$this->Session->del('Order.Coupon');
 		
 		if ($this->userId && $this->persistentCart) {
 			$this->updateDatabaseRecord();
