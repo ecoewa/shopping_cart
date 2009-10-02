@@ -52,13 +52,7 @@
 	 * @access public
 	 */
 	var $taxableField = 'taxable';
-	/**
-	 * The tax rate to be applied during calcTotal()
-	 *
-	 * @var decimal
-	 * @access public
-	 */
-	var $taxRate = 0;
+
 	/**
 	 * The shipping rate to be applied during calcTotal()
 	 *
@@ -483,12 +477,11 @@
 	 * @return void
 	 * @access public
 	 */
-	function setTaxRate($taxRate) {
-		// Ensures that percent values are changed to decimal
-		if ($taxRate > 1)
-			$taxRate = $taxRate / 100;
+	function setTaxRates($rates) {
+		if(!$this->Session->check('Order.TaxRate')) {
+			$this->Session->write('Order.TaxRate', $rates);
+		}
 		
-		$this->taxRate = $taxRate;
 		$this->calcTotal();
 	}
 	
@@ -590,7 +583,49 @@
 			}
 		}
 		
-		$tax = round($subtotal * $this->taxRate, 2);
+		$tax = 0;
+		if ($this->Session->check('Order.TaxRate')) {
+			// Determine taxable state
+			$taxableState = null;
+			if ($this->Session->check('Order.Shipping.State')) {
+				$taxableState = $this->Session->read('Order.Shipping.State.id');
+			} else {
+				$abbreviation = Configure::read('store.tax.defaultState');
+				$this->loadModel('State');
+				$state = $this->State->find('first', array(
+					'conditions' => array(
+						'State.abbreviation' => $abbreviation,
+					),
+				));
+				
+				$taxableState = $state['State']['id'];
+			}
+			
+			// Determine which rates apply
+			$taxRates = array();
+			foreach ($this->Session->read('Order.TaxRate') as $rate) {
+				foreach ($rate['State'] as $state) {
+					if ($state['id'] == $taxableState) {
+						$rate['subtotal'] = 0;
+						$taxRates[] = $rate;
+					}
+				}
+			}
+			
+			if(!empty($taxRates)) {
+				foreach($order['LineItem'] as $lineItem) {
+					if ($lineItem['Product']['taxable'] == 'yes') {
+						foreach ($taxRates as $key => $taxRate) {
+							$amount = $lineItem['Totals']['subtotal'] * ($taxRate['rate'] / 100);
+							$taxRates[$key]['subtotal'] += $amount;
+							$tax += $amount;
+						}
+					}
+				}
+			}
+			
+			$this->Session->write('Order.TaxRate', $taxRates);
+		}
 		
 		$shipping = 0;
 		if ($this->shipRate > 0) {
