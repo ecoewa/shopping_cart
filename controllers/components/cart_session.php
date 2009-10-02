@@ -153,6 +153,9 @@
 		if($this->Session->check('Order')) {
 			$this->Session->write('Order.Totals.shipping', 0);
 			$this->Session->del('Order.Shipping');
+			
+			$this->Session->write('Order.Totals.tax', 0);
+			$this->Session->del('Order.TaxRate');
 		}
 	}
 	
@@ -591,8 +594,8 @@
 				$taxableState = $this->Session->read('Order.Shipping.State.id');
 			} else {
 				$abbreviation = Configure::read('store.tax.defaultState');
-				$this->loadModel('State');
-				$state = $this->State->find('first', array(
+				$this->controller->loadModel('State');
+				$state = $this->controller->State->find('first', array(
 					'conditions' => array(
 						'State.abbreviation' => $abbreviation,
 					),
