@@ -299,7 +299,11 @@
 		// Apply LineItem specific attributes
 		$selection = array();
 		$selection['name'] = $lineItem['Product'][$this->nameField];
-		$selection['price'] = $lineItem['Product'][$this->priceField];
+		if(isset($lineItem['Product']['recurring_trial_price'])) {
+			$selection['price'] = $lineItem['Product']['recurring_trial_price'];
+		} else {
+			$selection['price'] = $lineItem['Product'][$this->priceField];	
+		}
 		$selection['description'] = ($this->descField) ? $lineItem['Product'][$this->descField] : null;
 		$selection['taxable'] = ($this->taxableField) ? $lineItem['Product'][$this->taxableField] : true;
 		$selection['quantity'] = $quantity;	
